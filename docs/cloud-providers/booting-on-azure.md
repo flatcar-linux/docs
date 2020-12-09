@@ -110,6 +110,36 @@ $ az vm create --name node-1 --resource-group group-1 --admin-username core --cu
   </div>
 </div>
 
+### Flatcar Pro Images
+
+Flatcar Pro images in the marketplace are paid images and come with commercial support and extra features. They are published for the Stable and Beta channels. The Pro image for Azure has support for NVidia GPUs.
+
+Using the Azure CLI you can list the Pro images for, e.g., the Stable channel, with `az vm image list --all -p kinvolk -f flatcar_pro -s stable`.
+
+*Note for GPU support in Beta:* Currently NVidia drivers are not compatible with the Linux kernel 5.9. For the mean time you can stick to an older Beta release that uses the 5.8 kernel. To allow your instances to automatically update when this situation is resolved we created a `beta-pro` channel in the public update server. When provisioning new nodes, use the following Container Linux Config (convert to Ignition with [`ct`](../../container-linux-config-transpiler/)) to make them use this channel:
+
+```yaml
+storage:
+  files:
+    - path: /etc/flatcar/update.conf
+      filesystem: root
+      mode: 0644
+      contents:
+        inline: |
+          GROUP=beta-pro
+```
+
+In case your instance already updated and runs the 5.9 kernel, you can downgrade by running these commands:
+
+```sh
+sudo sed -i "/FLATCAR_RELEASE_VERSION=.*/d" /etc/flatcar/update.conf
+echo "FLATCAR_RELEASE_VERSION=0.0.0" | sudo tee -a /etc/flatcar/update.conf
+update_engine_client -update
+sudo sed -i "/FLATCAR_RELEASE_VERSION=.*/d" /etc/flatcar/update.conf
+```
+
+Check that the update got downloaded and applied, then issue a reboot.
+
 ## Uploading your own Image
 
 To automatically download the Flatcar image for Azure from the release page and upload it to your Azure account, run the following command:
